@@ -1,59 +1,61 @@
-const searchBtn = document.getElementById('search-btn');
-const input = document.getElementById('input');
-const imgContainer = document.getElementById('img-container');
-searchBtn.addEventListener('click', async (e) => {
-  e.preventDefault(); 
 
-  const movieName = input.value.trim();
-
-  if (movieName) {
-    try {
-      const response = await fetch(`http://localhost:3000/movies?name=${movieName}`);
-      const data = await response.json();
-      imgContainer.innerHTML = '';
-
-      if (data && data.length > 0) {
-        const filteredMovies = data.filter(movie => movie.title.toLowerCase().includes(movieName.toLowerCase()))
-
-        if (filteredMovies.length > 0) {
-          filteredMovies.forEach(movie => {
-            const movieDiv = document.createElement('div');
-            movieDiv.classList.add('movie');
-
-            const movieImg = document.createElement('img');
-            movieImg.src = movie.poster || 'https://via.placeholder.com/150'; 
-            movieImg.alt = movie.title || 'Movie Poster'; 
-
-            const movieTitle = document.createElement('h2');
-            movieTitle.textContent = movie.title || 'Untitled Movie';
-
-            const movieRating = document.createElement('p');
-            movieRating.textContent = `Rating: ${movie.rating || 'N/A'}`;
-
-            const movieYear = document.createElement('p');
-            movieYear.textContent = `Year: ${movie.year || 'Unknown'}`;
-
+document.addEventListener("DOMContentLoaded", () => {
+  async function fetchMovies() {
+      try {
+          const response = await fetch("http://localhost:3000/movies");
           
-            const movieGenre = document.createElement('p');
-            movieGenre.textContent = `Genre: ${movie.genre.join(', ') || 'Unknown'}`;
-
-            movieDiv.appendChild(movieImg);
-            movieDiv.appendChild(movieTitle);
-            movieDiv.appendChild(movieRating);
-            movieDiv.appendChild(movieYear);
-            movieDiv.appendChild(movieGenre);
-            imgContainer.appendChild(movieDiv);
-          });
-        } else {
-          imgContainer.innerHTML = '<p>No movie found with that name.</p>';
-        }
-      } else {
-        imgContainer.innerHTML = '<p>No results found for that movie.</p>';
+          if (!response.ok) {
+              console.error("Error fetching movies:", response.statusText);
+              return;
+          }
+          const movies = await response.json(); 
+          console.log(movies);
+          displayMovies(movies); 
+          window.movies = movies;
+      } catch (error) {
+          console.error("Failed to fetch movies:", error);
       }
-    } catch (error) {
-      imgContainer.innerHTML = '<p>Error fetching data. Please try again later.</p>';
-    }
+  }
+  fetchMovies(); 
+
+  const searchInput = document.getElementById("search");
+  if (searchInput) {
+      searchInput.addEventListener("input", () => {
+          const searchvalue = searchInput.value.toLowerCase();
+          const filteredMovies = window.movies.filter(movie =>
+              movie.title.toLowerCase().includes(searchvalue)
+          );
+          displayMovies(filteredMovies);
+      });
   } else {
-    imgContainer.innerHTML = '<p>Please enter a movie name.</p>';
+      console.error("Search input element not found");
   }
 });
+
+function displayMovies(movies) {
+  const movieList = document.getElementById("movie-list");
+
+  if (!movieList) {
+      console.error('Movie list container not found');
+      return;
+  }
+
+  movieList.innerHTML = "";
+
+  if (movies.length === 0) {
+      movieList.innerHTML = "<p>No movies found.</p>";
+  } else {
+      movies.forEach(movie => {
+          const movieDiv = document.createElement("div");
+          movieDiv.classList.add("movie");
+          movieDiv.innerHTML = `
+              <img src="${movie.poster}" alt="${movie.title}">
+              <h3>${movie.title}</h3>
+              <p><strong>Year:</strong> ${movie.year}</p>
+              <p><strong>Genre:</strong> ${movie.genre.join(", ")}</p>
+              <p><strong>⭐</strong> ${movie.rating}</p>
+          `;
+          movieList.appendChild(movieDiv);
+      });
+  }
+}
